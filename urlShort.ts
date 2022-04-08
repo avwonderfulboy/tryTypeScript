@@ -1,42 +1,24 @@
-import { Context } from "vm";
+import { APIGatewayEvent, APIGatewayProxyEventQueryStringParameters } from "aws-lambda";
+import {DynamoDB,Lambda} from "aws-sdk";
 
-const AWS = require("aws-sdk");
-const dynamodb = new AWS.DynamoDB({
+
+const dynamodb = new DynamoDB({
   apiVersion: "2012-08-10",
   region: "us-east-1",
 });
 
-interface revent{
-  key1:string;
-  key2:string;
-  key3:string;
-}
-
-
-interface re{
-  statusCode:number;
-  body:string;
-}
-
-exports.handler = async (event:any,context:Context) => {
+exports.handler = async (event:APIGatewayEvent) => {
   try {
-    
-   
-    if (event.requestContext.http.method === "GET") {
-      const { short_url:String } = (event.queryStringParameters);
-  
-        
-      if (short_url.length==0)
+    if (event.requestContext.httpMethod === "GET") {
+      const { short_url } = event.queryStringParameters as APIGatewayProxyEventQueryStringParameters;
+
+      if (short_url?.length=== 0)
         return {
           statusCode: 400,
           body: "Short url cannot be empty ",
         };
-interface resp{
 
-
-}
-
-      let resp:resp = await dynamodb
+      let resp = await dynamodb
         .getItem({
           TableName: "shortner",
           Key: {
@@ -44,7 +26,6 @@ interface resp{
           },
         })
         .promise();
-      
 
       if (resp.Item === undefined) {
         return {
@@ -54,32 +35,20 @@ interface resp{
       }
 
       return {
-      	statusCode: 302,
-      	headers:{
-      	  'location':`https://${resp.Item.long_url.S}`
-      	},
-      
+        statusCode: 302,
+        headers: {
+          location: `https://${resp.Item.long_url.S}`,
+        },
       };
     }
-    if (event.requestContext.http.method === "POST") {
-      const { long_url :String} = JSON.parse(event.body);
+    if (event.requestContext.httpMethod === "POST") {
+      const { long_url }: { long_url: string } = JSON.parse(event.body as string);
       if (long_url.length == 0) return { body: " url cannot be empty  " };
-      let short_url:String =
+      let short_url =
         Math.random().toString(32).substring(2, 4) +
         Math.random().toString(32).substring(2, 4);
 
-
-      interface respo{
-        TableName:string;
-        Item:{
-          short_url:{S:string};
-          long_url: { S:string },
-
-        };
-
-      }
-
-      let response:respo = await dynamodb
+      let response = await dynamodb
         .putItem({
           TableName: "shortner",
           Item: {
@@ -92,7 +61,6 @@ interface resp{
       return { short_url };
     }
   } catch (err) {
-      
     return {
       statusCode: 400,
       body: JSON.stringify(err),
